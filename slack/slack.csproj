@@ -1,0 +1,225 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{0633936D-137C-4B5B-8233-DB3FD610CB2D}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>slack</RootNamespace>
+    <AssemblyName>slack</AssemblyName>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Helpers, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Bot.cs" />
+    <Compile Include="Channels\Collection.cs" />
+    <Compile Include="Channels\HistoryRequestArgs.cs" />
+    <Compile Include="Channels\Responses\ArchiveResponse.cs" />
+    <Compile Include="Channels\Responses\CreateResponse.cs" />
+    <Compile Include="Channels\Responses\HistoryResponse.cs" />
+    <Compile Include="Channels\Responses\InfoResponse.cs" />
+    <Compile Include="Channels\Responses\InviteResponse.cs" />
+    <Compile Include="Channels\Responses\JoinResponse.cs" />
+    <Compile Include="Channels\Responses\KickResponse.cs" />
+    <Compile Include="Channels\Responses\LeaveResponse.cs" />
+    <Compile Include="Channels\Responses\ListResponse.cs" />
+    <Compile Include="Channels\Responses\MarkResponse.cs" />
+    <Compile Include="Channels\Responses\RenameResponse.cs" />
+    <Compile Include="Channels\Responses\SetPurposeResponse.cs" />
+    <Compile Include="Channels\Responses\SetTopicResponse.cs" />
+    <Compile Include="Channels\Responses\UnarchiveResponse.cs" />
+    <Compile Include="Chat\Chat.cs" />
+    <Compile Include="Chat\PostMessageArguments.cs" />
+    <Compile Include="Chat\Responses\PostMessageResponse.cs" />
+    <Compile Include="Chat\Responses\UpdateMessageResponse.cs" />
+    <Compile Include="Chat\UpdateMessageArgs.cs" />
+    <Compile Include="Client.cs" />
+    <Compile Include="DND\DND.cs" />
+    <Compile Include="DoNotDisturbStatus.cs" />
+    <Compile Include="DoNotDisturbUserStatus.cs" />
+    <Compile Include="Errors\AccountInactiveException.cs" />
+    <Compile Include="Errors\AlreadyArchivedException.cs" />
+    <Compile Include="Errors\AreadyInChannelException.cs" />
+    <Compile Include="Errors\CantArchiveGeneralException.cs" />
+    <Compile Include="Errors\CantDeleteMessageException.cs" />
+    <Compile Include="Errors\CantInviteException.cs" />
+    <Compile Include="Errors\CantInviteSelfException.cs" />
+    <Compile Include="Errors\CantKickFromGeneralException.cs" />
+    <Compile Include="Errors\CantKickFromLastChannelException.cs" />
+    <Compile Include="Errors\CantKickSelfException.cs" />
+    <Compile Include="Errors\CantLeaveGeneralException.cs" />
+    <Compile Include="Errors\CantUpdateMessageException.cs" />
+    <Compile Include="Errors\ChannelNotFoundException.cs" />
+    <Compile Include="Errors\ComplianceExportsPreventDeletionException.cs" />
+    <Compile Include="Errors\EditWindowClosedException.cs" />
+    <Compile Include="Errors\InvalidArrayArgException.cs" />
+    <Compile Include="Errors\InvalidAuthException.cs" />
+    <Compile Include="Errors\InvalidCharsetException.cs" />
+    <Compile Include="Errors\InvalidFormDataException.cs" />
+    <Compile Include="Errors\InvalidPostTypeException.cs" />
+    <Compile Include="Errors\InvalidTimestampException.cs" />
+    <Compile Include="Errors\InvalidTSLatestException.cs" />
+    <Compile Include="Errors\InvalidTSOldestException.cs" />
+    <Compile Include="Errors\IsArchivedException.cs" />
+    <Compile Include="Errors\LastRestrictedAccountChannelException.cs" />
+    <Compile Include="Errors\MessageNotFoundException.cs" />
+    <Compile Include="Errors\MessageTooLongException.cs" />
+    <Compile Include="Errors\MissingDurationException.cs" />
+    <Compile Include="Errors\MissingPostTypeException.cs" />
+    <Compile Include="Errors\NameTakenException.cs" />
+    <Compile Include="Errors\NoChannelException.cs" />
+    <Compile Include="Errors\NotArchivedException.cs" />
+    <Compile Include="Errors\NotAuthedException.cs" />
+    <Compile Include="Errors\NoTextException.cs" />
+    <Compile Include="Errors\NotInChannelException.cs" />
+    <Compile Include="Errors\RateLimitedException.cs" />
+    <Compile Include="Errors\RequestTimeoutException.cs" />
+    <Compile Include="Errors\RestrictedActionException.cs" />
+    <Compile Include="Errors\TooLongException.cs" />
+    <Compile Include="Errors\UnknownErrorException.cs" />
+    <Compile Include="Errors\UserDisabledException.cs" />
+    <Compile Include="Errors\UserIsBotException.cs" />
+    <Compile Include="Errors\UserIsRestrictedException.cs" />
+    <Compile Include="Errors\UserIsUltraRestrictedException.cs" />
+    <Compile Include="Errors\UserNotFoundException.cs" />
+    <Compile Include="Errors\UserNotVisibleException.cs" />
+    <Compile Include="EventArgs\AccountsChangedEventArgs.cs" />
+    <Compile Include="EventArgs\BotAddedEventArgs.cs" />
+    <Compile Include="EventArgs\BotChangedEventArgs.cs" />
+    <Compile Include="EventArgs\ChannelArchiveEventArgs.cs" />
+    <Compile Include="EventArgs\ChannelCreatedEventArgs.cs" />
+    <Compile Include="EventArgs\ChannelDeletedEventArgs.cs" />
+    <Compile Include="EventArgs\ChannelHistoryChangedEventArgs.cs" />
+    <Compile Include="EventArgs\ChannelJoinedEventArgs.cs" />
+    <Compile Include="EventArgs\ChannelLeftEventArgs.cs" />
+    <Compile Include="EventArgs\ChannelMarkedEventArgs.cs" />
+    <Compile Include="EventArgs\ChannelRenameEventArgs.cs" />
+    <Compile Include="EventArgs\ChannelUnarchiveEventArgs.cs" />
+    <Compile Include="EventArgs\CommandsChangedEventArgs.cs" />
+    <Compile Include="EventArgs\DoNotDisturbUpdatedEventArgs.cs" />
+    <Compile Include="EventArgs\DoNotDisturbUpdatedUserEventArgs.cs" />
+    <Compile Include="EventArgs\EmailDomainChangedEventArgs.cs" />
+    <Compile Include="EventArgs\EmojiChangedEventArgs.cs" />
+    <Compile Include="EventArgs\FileChangeEventArgs.cs" />
+    <Compile Include="EventArgs\FileCommentAddedEventArgs.cs" />
+    <Compile Include="EventArgs\FileCommentDeletedEventArgs.cs" />
+    <Compile Include="EventArgs\FileCommentEditedEventArgs.cs" />
+    <Compile Include="EventArgs\FileCreatedEventArgs.cs" />
+    <Compile Include="EventArgs\FileDeletedEventArgs.cs" />
+    <Compile Include="EventArgs\FilePrivateEventArgs.cs" />
+    <Compile Include="EventArgs\FilePublicEventArgs.cs" />
+    <Compile Include="EventArgs\FileSharedEventArgs.cs" />
+    <Compile Include="EventArgs\FileUnsharedEventArgs.cs" />
+    <Compile Include="EventArgs\GroupArchiveEventArgs.cs" />
+    <Compile Include="EventArgs\GroupCloseEventArgs.cs" />
+    <Compile Include="EventArgs\GroupHistoryChangedEventArgs.cs" />
+    <Compile Include="EventArgs\GroupJoinedEventArgs.cs" />
+    <Compile Include="EventArgs\GroupLeftEventArgs.cs" />
+    <Compile Include="EventArgs\GroupMarkedEventArgs.cs" />
+    <Compile Include="EventArgs\GroupOpenEventArgs.cs" />
+    <Compile Include="EventArgs\GroupRenameEventArgs.cs" />
+    <Compile Include="EventArgs\GroupUnarchiveEventArgs.cs" />
+    <Compile Include="EventArgs\HelloEventArgs.cs" />
+    <Compile Include="EventArgs\IMCloseEventArgs.cs" />
+    <Compile Include="EventArgs\IMCreatedEventArgs.cs" />
+    <Compile Include="EventArgs\IMHistoryChangedEventArgs.cs" />
+    <Compile Include="EventArgs\IMMarkedEventArgs.cs" />
+    <Compile Include="EventArgs\IMOpenEventArgs.cs" />
+    <Compile Include="EventArgs\ManualPresenceChangeEventArgs.cs" />
+    <Compile Include="EventArgs\MessageEditEventArgs.cs" />
+    <Compile Include="EventArgs\MessageEventArgs.cs" />
+    <Compile Include="EventArgs\PinAddedEventArgs.cs" />
+    <Compile Include="EventArgs\PinRemovedEventArgs.cs" />
+    <Compile Include="EventArgs\PrefChangedEventArgs.cs" />
+    <Compile Include="EventArgs\PresenceChangeEventArgs.cs" />
+    <Compile Include="EventArgs\ReactionAddedEventArgs.cs" />
+    <Compile Include="EventArgs\ReactionRemovedEventArgs.cs" />
+    <Compile Include="EventArgs\StarAddedEventArgs.cs" />
+    <Compile Include="EventArgs\StarRemovedEventArgs.cs" />
+    <Compile Include="EventArgs\SubTeamCreatedEventArgs.cs" />
+    <Compile Include="EventArgs\SubTeamSelfAddedEventArgs.cs" />
+    <Compile Include="EventArgs\SubTeamSelfRemovedEventArgs.cs" />
+    <Compile Include="EventArgs\SubTeamUpdatedEventArgs.cs" />
+    <Compile Include="EventArgs\TeamDomainChangeEventArgs.cs" />
+    <Compile Include="EventArgs\TeamJoinEventArgs.cs" />
+    <Compile Include="EventArgs\TeamMigrationStartedEventArgs.cs" />
+    <Compile Include="EventArgs\TeamPlanChangeEventArgs.cs" />
+    <Compile Include="EventArgs\TeamPrefChangeEventArgs.cs" />
+    <Compile Include="EventArgs\TeamProfileChangeEventArgs.cs" />
+    <Compile Include="EventArgs\TeamProfileDeleteEventArgs.cs" />
+    <Compile Include="EventArgs\TeamProfileReorderEventArgs.cs" />
+    <Compile Include="EventArgs\TeamRenameEventArgs.cs" />
+    <Compile Include="EventArgs\UserChangeEventArgs.cs" />
+    <Compile Include="EventArgs\UserTypingEventArgs.cs" />
+    <Compile Include="FileObject.cs" />
+    <Compile Include="Icons.cs" />
+    <Compile Include="IM\IM.cs" />
+    <Compile Include="IM\Responses\ListResponse.cs" />
+    <Compile Include="IM\Responses\OpenResponse.cs" />
+    <Compile Include="Messages\IMessage.cs" />
+    <Compile Include="Messages\Message.cs" />
+    <Compile Include="Messages\Text.cs" />
+    <Compile Include="Messages\Unknown.cs" />
+    <Compile Include="AuthTestResponse.cs" />
+    <Compile Include="Prefs.cs" />
+    <Compile Include="Previous_Message.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RTM\bot.cs" />
+    <Compile Include="RTM\channel.cs" />
+    <Compile Include="RTM\dnd.cs" />
+    <Compile Include="RTM\icon.cs" />
+    <Compile Include="RTM\ims.cs" />
+    <Compile Include="RTM\MetaData.cs" />
+    <Compile Include="RTM\self.cs" />
+    <Compile Include="RTM\subteams.cs" />
+    <Compile Include="RTM\team.cs" />
+    <Compile Include="RTM\user.cs" />
+    <Compile Include="SubTeam.cs" />
+    <Compile Include="TimeStamp.cs" />
+    <Compile Include="Utility.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
