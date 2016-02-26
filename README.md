@@ -3,8 +3,7 @@ This repo contains the slack client library "slack" and a "test" project that de
 The library supports many of the slack events and has defined most slack exceptions.
 
 
-The test app requires a single parameter which is your slack API / token that you will need to obtain from slack first.
-You can get a token on slack's website [here](https://api.slack.com/docs/oauth-test-tokens)
+The test project is a console app that requires a single startup parameter which is your slack API / token.  You will need to obtain this token via slack's website [here](https://api.slack.com/docs/oauth-test-tokens)
 
 
 ###To create a new slack client
