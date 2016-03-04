@@ -14,7 +14,7 @@ namespace test
 
 
 		private static Slack.Client client;
-
+		private static Int32 connectionFailures = 0;
 
 		//main entry point for application
 		static void Main(string[] args)
@@ -33,6 +33,10 @@ namespace test
 			client = new Slack.Client(args[0]);
 
 			//subscribe to any of the events that may interest you
+			client.ServiceConnected += new Slack.Client.ServiceConnectedEventHandler(client_ServiceConnected);
+			client.ServiceConnectionFailed += new Slack.Client.ServiceConnectionFailedEventHandler(client_ServiceDisconnected_ServiceConnectionFailure);
+			client.ServiceDisconnected += new Slack.Client.ServiceDisconnectedEventHandler(client_ServiceDisconnected_ServiceConnectionFailure);
+
 			client.Hello += new Slack.Client.HelloEventHandler(client_Hello);
 			client.DataReceived += new Slack.Client.DataReceivedEventHandler(client_DataReceived);
 			client.PresenceChanged += new Slack.Client.PresenceChangedEventHandler(client_PresenceChanged);
@@ -40,6 +44,7 @@ namespace test
 			client.Message += new Slack.Client.MessageEventHandler(client_Message);
 			client.MesssageEdit += new Slack.Client.MessageEditEventHandler(client_MessageEdit);
 			client.DoNotDisturbUpdatedUser += new Slack.Client.DoNotDistrubUpdatedUserEventHandler(client_DoNotDisturbUpdatedUser);
+
 
 			//connect to the slack service
 			client.Connect();
@@ -53,7 +58,30 @@ namespace test
 		}
 
 
-		#region Slack Events
+#region Slack Events
+
+
+		private static void client_ServiceConnected()
+		{
+			connectionFailures = 0;
+			Console.WriteLine("Connected to slack service.");
+		}
+
+
+		private static void client_ServiceDisconnected_ServiceConnectionFailure()
+		{
+			connectionFailures++;
+			if (connectionFailures < 13)
+			{	//wait 5 seconds and try to reconnect
+				System.Threading.Thread.Sleep(5 * 1000);
+			}
+			else
+			{   //wait 1 minute and try to reconnect
+				System.Threading.Thread.Sleep(60 * 1000);
+			}
+			Console.WriteLine("Attempting to reconnect to slack service. Attempt " + connectionFailures);
+			client.Connect();
+		}
 
 
 		private static void client_Hello(Slack.HelloEventArgs e)

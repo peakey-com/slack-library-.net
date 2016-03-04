@@ -108,6 +108,7 @@
     <Compile Include="Errors\RateLimitedException.cs" />
     <Compile Include="Errors\RequestTimeoutException.cs" />
     <Compile Include="Errors\RestrictedActionException.cs" />
+    <Compile Include="Errors\ServiceDisconnectedException.cs" />
     <Compile Include="Errors\TooLongException.cs" />
     <Compile Include="Errors\UnknownErrorException.cs" />
     <Compile Include="Errors\UserDisabledException.cs" />

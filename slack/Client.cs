@@ -19,7 +19,11 @@ namespace Slack
 #region Delegates
 
 
-        public delegate void DataReceivedEventHandler(String data);
+		public delegate void ServiceConnectedEventHandler();
+		public delegate void ServiceConnectionFailedEventHandler();
+		public delegate void ServiceDisconnectedEventHandler();
+
+		public delegate void DataReceivedEventHandler(String data);
         public delegate void HelloEventHandler(HelloEventArgs e);
         public delegate void AccountsChangedEventHandler(AccountsChangedEventArgs e);
         public delegate void BotAddedEventHandler(BotAddedEventArgs e);
@@ -108,7 +112,11 @@ namespace Slack
 #region Public Events
 
 
-        public event DataReceivedEventHandler DataReceived = null;
+		public event ServiceConnectedEventHandler ServiceConnected = null;
+		public event ServiceConnectionFailedEventHandler ServiceConnectionFailed = null;
+		public event ServiceDisconnectedEventHandler ServiceDisconnected = null;
+
+		public event DataReceivedEventHandler DataReceived = null;
         public event HelloEventHandler Hello = null;
         public event AccountsChangedEventHandler AccountsChanged = null;
         public event BotAddedEventHandler BotAdded = null;
@@ -239,11 +247,26 @@ namespace Slack
 
         private async Task _connect()
         {
-            try
-            {
-                webSocket = new System.Net.WebSockets.ClientWebSocket();
-                await webSocket.ConnectAsync(new Uri(rtmMetaData.url), System.Threading.CancellationToken.None);
-                _processMessages();
+			try
+			{
+				webSocket = new System.Net.WebSockets.ClientWebSocket();
+				await webSocket.ConnectAsync(new Uri(rtmMetaData.url), System.Threading.CancellationToken.None);
+			}
+			catch (Exception)
+			{
+				if (ServiceConnectionFailed != null)
+				{
+					ServiceConnectionFailed();
+				}
+				return;	//bail....we can do nothing
+			}
+			try
+			{
+				if (ServiceConnected != null)
+				{
+					ServiceConnected();
+				}
+				_processMessages();
             }
             catch (Exception ex)
             {
@@ -261,10 +284,14 @@ namespace Slack
         private async Task _disconnect()
         {
             await webSocket.CloseAsync(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, "", System.Threading.CancellationToken.None);
-        }
+			if (ServiceDisconnected != null)
+			{
+				ServiceDisconnected();
+			}
+		}
 
 
-        public String APIRequest(String strURL)
+		public String APIRequest(String strURL)
         {
             try
             {
@@ -430,541 +457,575 @@ namespace Slack
 
         private async void _processMessages()
         {
-            String strMessage;
-            while (1 == 1)
-            {
-                try
-                {
-                    strMessage = await _readMessage();
-                    if (DataReceived != null)
-                    {
-                        DataReceived(strMessage);
-                    }
-                    dynamic Data = System.Web.Helpers.Json.Decode(strMessage);
-                    switch ((String)Data.type)
-                    {
-                        case "hello":
-                            HelloEventArgs helloEventArgs = new HelloEventArgs();
-                            if (Hello != null)
-                            {
-                                Hello(helloEventArgs);
-                            }
-                            break;
-                        case "accounts_changed":
-                            AccountsChangedEventArgs accountsChangedEventArgs = new AccountsChangedEventArgs(Data);
-                            if (AccountsChanged != null)
-                            {
-                                AccountsChanged(accountsChangedEventArgs);
-                            }
-                            break;
-                        case "bot_added":
-                            BotAddedEventArgs botAddedEventArgs = new BotAddedEventArgs(Data);
-                            if (BotAdded != null)
-                            {
-                                BotAdded(botAddedEventArgs);
-                            }
-                            break;
-                        case "bot_changed":
-                            BotChangedEventArgs botChangedEventArgs = new BotChangedEventArgs(Data);
-                            if (BotChanged != null)
-                            {
-                                BotChanged(botChangedEventArgs);
-                            }
-                            break;
-                        case "channel_archive":
-                            ChannelArchiveEventArgs channelArchiveEventArgs = new ChannelArchiveEventArgs(Data);
-                            if (ChannelArchive != null)
-                            {
-                                ChannelArchive(channelArchiveEventArgs);
-                            }
-                            break;
-                        case "channel_created":
-                            ChannelCreatedEventArgs channelCreatedEventArgs = new ChannelCreatedEventArgs(Data);
-                            if (ChannelCreated != null)
-                            {
-                                ChannelCreated(channelCreatedEventArgs);
-                            }
-                            break;
-                        case "channel_deleted":
-                            ChannelDeletedEventArgs channelDeletedEventArgs = new ChannelDeletedEventArgs(Data);
-                            if (ChannelDeleted != null)
-                            {
-                                ChannelDeleted(channelDeletedEventArgs);
-                            }
-                            break;
-                        case "channel_history_changed":
-                            ChannelHistoryChangedEventArgs channelHistoryChangedEventArgs = new ChannelHistoryChangedEventArgs(Data);
-                            if (ChannelHistoryChanged != null)
-                            {
-                                ChannelHistoryChanged(channelHistoryChangedEventArgs);
-                            }
-                            break;
-                        case "channel_joined":
-                            ChannelJoinedEventArgs channelJoinedEventArgs = new ChannelJoinedEventArgs(Data);
-                            if (ChannelJoined != null)
-                            {
-                                ChannelJoined(channelJoinedEventArgs);
-                            }
-                            break;
-                        case "channel_left":
-                            ChannelLeftEventArgs channelLeftEventArgs = new ChannelLeftEventArgs(Data);
-                            if (ChannelLeft != null)
-                            {
-                                ChannelLeft(channelLeftEventArgs);
-                            }
-                            break;
-                        case "channel_marked":
-                            ChannelMarkedEventArgs channelMarkedEventArgs = new ChannelMarkedEventArgs(Data);
-                            if (ChannelMarked != null)
-                            {
-                                ChannelMarked(channelMarkedEventArgs);
-                            }
-                            break;
-                        case "channel_rename":
-                            ChannelRenameEventArgs channelRenameEventArgs = new ChannelRenameEventArgs(Data);
-                            if (ChannelRename != null)
-                            {
-                                ChannelRename(channelRenameEventArgs);
-                            }
-                            break;
-                        case "channel_unarchive":
-                            ChannelUnarchiveEventArgs channelUnarchiveEventArgs = new ChannelUnarchiveEventArgs(Data);
-                            if (ChannelUnarchive != null)
-                            {
-                                ChannelUnarchive(channelUnarchiveEventArgs);
-                            }
-                            break;
-                        case "commands_changed":
-                            CommandsChangedEventArgs commandsChangedEventArgs = new CommandsChangedEventArgs(Data);
-                            if (CommandsChanged != null)
-                            {
-                                CommandsChanged(commandsChangedEventArgs);
-                            }
-                            break;
-                        case "dnd_updated":
-                            DoNotDisturbUpdatedEventArgs dndUpdatedEventArgs = new DoNotDisturbUpdatedEventArgs(Data);
-                            if (DoNotDisturbUpdated != null)
-                            {
-                                DoNotDisturbUpdated(dndUpdatedEventArgs);
-                            }
-                            break;
-                        case "dnd_updated_user":
-                            DoNotDisturbUpdatedUserEventArgs dndUpdatedUserEventArgs = new DoNotDisturbUpdatedUserEventArgs(this, Data);
-                            if (DoNotDisturbUpdatedUser != null)
-                            {
-                                DoNotDisturbUpdatedUser(dndUpdatedUserEventArgs);
-                            }
-                            break;
-                        case "email_domain_changed":
-                            EmailDomainChangedEventArgs emailDomainChangedEventArgs = new EmailDomainChangedEventArgs(Data);
-                            if (EmailDomainChanged != null)
-                            {
-                                EmailDomainChanged(emailDomainChangedEventArgs);
-                            }
-                            break;
-                        case "emoji_changed":
-                            EmojiChangedEventArgs emojiChangedEventArgs = new EmojiChangedEventArgs(Data);
-                            if (EmojiChanged != null)
-                            {
-                                EmojiChanged(emojiChangedEventArgs);
-                            }
-                            break;
-                        case "file_change":
-                            FileChangeEventArgs fileChangeEventArgs = new FileChangeEventArgs(Data);
-                            if (FileChanged != null)
-                            {
-                                FileChanged(fileChangeEventArgs);
-                            }
-                            break;
-                        case "file_comment_added":
-                            FileCommentAddedEventArgs fileCommentAddedEventArgs = new FileCommentAddedEventArgs(Data);
-                            if (FileCommentAdded != null)
-                            {
-                                FileCommentAdded(fileCommentAddedEventArgs);
-                            }
-                            break;
-                        case "file_comment_edited":
-                            FileCommentEditedEventArgs fileCommentEditedEventArgs = new FileCommentEditedEventArgs(Data);
-                            if (FileCommentEdited != null)
-                            {
-                                FileCommentEdited(fileCommentEditedEventArgs);
-                            }
-                            break;
-                        case "file_comment_deleted":
-                            FileCommentDeletedEventArgs fileCommentDeletedEventArgs = new FileCommentDeletedEventArgs(Data);
-                            if (FileCommentDeleted != null)
-                            {
-                                FileCommentDeleted(fileCommentDeletedEventArgs);
-                            }
-                            break;
-                        case "file_created":
-                            FileCreatedEventArgs fileCreatedEventArgs = new FileCreatedEventArgs(Data);
-                            if (FileCreated != null)
-                            {
-                                FileCreated(fileCreatedEventArgs);
-                            }
-                            break;
-                        case "file_deleted":
-                            FileDeletedEventArgs fileDeletedEventArgs = new FileDeletedEventArgs(Data);
-                            if (FileDeleted != null)
-                            {
-                                FileDeleted(fileDeletedEventArgs);
-                            }
-                            break;
-                        case "file_private":
-                            FilePrivateEventArgs filePrivateEventArgs = new FilePrivateEventArgs(Data);
-                            if (FilePrivate != null)
-                            {
-                                FilePrivate(filePrivateEventArgs);
-                            }
-                            break;
-                        case "file_public":
-                            FilePublicEventArgs filePublicEventArgs = new FilePublicEventArgs(Data);
-                            if (FilePublic != null)
-                            {
-                                FilePublic(filePublicEventArgs);
-                            }
-                            break;
-                        case "file_shared":
-                            FileSharedEventArgs fileSharedEventArgs = new FileSharedEventArgs(Data);
-                            if (FileShared != null)
-                            {
-                                FileShared(fileSharedEventArgs);
-                            }
-                            break;
-                        case "file_unshared":
-                            FileUnsharedEventArgs fileUnsharedEventArgs = new FileUnsharedEventArgs(Data);
-                            if (FileUnshared != null)
-                            {
-                                FileUnshared(fileUnsharedEventArgs);
-                            }
-                            break;
-                        case "group_archive":
-                            GroupArchiveEventArgs groupArchiveEventArgs = new GroupArchiveEventArgs(Data);
-                            if (GroupArchive != null)
-                            {
-                                GroupArchive(groupArchiveEventArgs);
-                            }
-                            break;
-                        case "group_close":
-                            GroupCloseEventArgs groupCloseEventArgs = new GroupCloseEventArgs(Data);
-                            if (GroupClose != null)
-                            {
-                                GroupClose(groupCloseEventArgs);
-                            }
-                            break;
-                        case "group_history_changed":
-                            GroupHistoryChangedEventArgs groupHistoryChangedEventArgs = new GroupHistoryChangedEventArgs(Data);
-                            if (GroupHistoryChanged != null)
-                            {
-                                GroupHistoryChanged(groupHistoryChangedEventArgs);
-                            }
-                            break;
-                        case "group_joined":
-                            GroupJoinedEventArgs groupJoinedEventArgs = new GroupJoinedEventArgs(Data);
-                            if (GroupJoined != null)
-                            {
-                                GroupJoined(groupJoinedEventArgs);
-                            }
-                            break;
-                        case "group_left":
-                            GroupLeftEventArgs groupLeftEventArgs = new GroupLeftEventArgs(Data);
-                            if (GroupLeft != null)
-                            {
-                                GroupLeft(groupLeftEventArgs);
-                            }
-                            break;
-                        case "group_marked":
-                            GroupMarkedEventArgs groupMarkedEventArgs = new GroupMarkedEventArgs(Data);
-                            if (GroupMarked != null)
-                            {
-                                GroupMarked(groupMarkedEventArgs);
-                            }
-                            break;
-                        case "group_open":
-                            GroupOpenEventArgs groupOpenEventArgs = new GroupOpenEventArgs(Data);
-                            if (GroupOpen != null)
-                            {
-                                GroupOpen(groupOpenEventArgs);
-                            }
-                            break;
-                        case "group_rename":
-                            GroupRenameEventArgs groupRenameEventArgs = new GroupRenameEventArgs(Data);
-                            if (GroupRename != null)
-                            {
-                                GroupRename(groupRenameEventArgs);
-                            }
-                            break;
-                        case "group_unarchive":
-                            GroupUnarchiveEventArgs groupUnarchiveEventArgs = new GroupUnarchiveEventArgs(Data);
-                            if (GroupUnarchive != null)
-                            {
-                                GroupUnarchive(groupUnarchiveEventArgs);
-                            }
-                            break;
-                        case "im_close":
-                            IMCloseEventArgs imCloseEventArgs = new IMCloseEventArgs(Data);
-                            if (IMClose != null)
-                            {
-                                IMClose(imCloseEventArgs);
-                            }
-                            break;
-                        case "im_created":
-                            IMCreatedEventArgs imCreatedEventArgs = new IMCreatedEventArgs(Data);
-                            if (IMCreated != null)
-                            {
-                                IMCreated(imCreatedEventArgs);
-                            }
-                            break;
-                        case "im_history_changed":
-                            IMHistoryChangedEventArgs imHistoryChangedEventArgs = new IMHistoryChangedEventArgs(Data);
-                            if (IMHistoryChanged != null)
-                            {
-                                IMHistoryChanged(imHistoryChangedEventArgs);
-                            }
-                            break;
-                        case "im_marked":
-                            IMMarkedEventArgs imMarkedEventArgs = new IMMarkedEventArgs(Data);
-                            if (IMMarked != null)
-                            {
-                                IMMarked(imMarkedEventArgs);
-                            }
-                            break;
-                        case "im_open":
-                            IMOpenEventArgs imOpenEventArgs = new IMOpenEventArgs(Data);
-                            if (IMOpened != null)
-                            {
-                                IMOpened(imOpenEventArgs);
-                            }
-                            break;
-                        case "manual_presence_change":
-                            ManualPresenceChangeEventArgs manualPresenceChangeEventArgs = new ManualPresenceChangeEventArgs(Data);
-                            if (ManualPresenceChange != null)
-                            {
-                                ManualPresenceChange(manualPresenceChangeEventArgs);
-                            }
-                            break;
-                        case "message":
-                            if (Data.previous_message == null)
-                            {
-                                MessageEventArgs messagEventArgs = new MessageEventArgs(this, Data);
-                                if (Message != null)
-                                {
-                                    Message(messagEventArgs);
-                                }
-                            }
-                            else
-                            {
-                                MessageEditEventArgs messageEditEventArgs = new MessageEditEventArgs(this, Data);
-                                if (MesssageEdit != null)
-                                {
-                                    MesssageEdit(messageEditEventArgs);
-                                }
-                            }
-                            break;
-                        case "pin_added":
-                            PinAddedEventArgs pinAddedEventArgs = new PinAddedEventArgs(Data);
-                            if (PinAdded != null)
-                            {
-                                PinAdded(pinAddedEventArgs);
-                            }
-                            break;
-                        case "pin_removed":
-                            PinRemovedEventArgs pinRemovedEventArgs = new PinRemovedEventArgs(Data);
-                            if (PinRemoved != null)
-                            {
-                                PinRemoved(pinRemovedEventArgs);
-                            }
-                            break;
-                        case "pref_changed":
-                            PrefChangedEventArgs prefChangedEventArgs = new PrefChangedEventArgs(Data);
-                            if (PrefChanged != null)
-                            {
-                                PrefChanged(prefChangedEventArgs);
-                            }
-                            break;
-                        case "presence_change":
-                            PresenceChangeEventArgs presenceChangeEventArgs = new PresenceChangeEventArgs(this, Data);
-                            if (PresenceChanged != null)
-                            {
-                                PresenceChanged(presenceChangeEventArgs);
-                            }
-                            break;
-                        case "reaction_added":
-                            ReactionAddedEventArgs reactionAddedEventArgs = new ReactionAddedEventArgs(Data);
-                            if (ReactionAdded != null)
-                            {
-                                ReactionAdded(reactionAddedEventArgs);
-                            }
-                            break;
-                        case "reaction_removed":
-                            ReactionRemovedEventArgs reactionRemovedEventArgs = new ReactionRemovedEventArgs(Data);
-                            if (ReactionRemoved != null)
-                            {
-                                ReactionRemoved(reactionRemovedEventArgs);
-                            }
-                            break;
-                        case "star_added":
-                            StarAddedEventArgs starAddedEventArgs = new StarAddedEventArgs(Data);
-                            if (StarAdded != null)
-                            {
-                                StarAdded(starAddedEventArgs);
-                            }
-                            break;
-                        case "star_removed":
-                            StarRemovedEventArgs starRemovedEventArgs = new StarRemovedEventArgs(Data);
-                            if (StarRemoved != null)
-                            {
-                                StarRemoved(starRemovedEventArgs);
-                            }
-                            break;
-                        case "subteam_created":
-                            SubTeamCreatedEventArgs subTeamCreatedEventArgs = new SubTeamCreatedEventArgs(Data);
-                            if (SubTeamCreated != null)
-                            {
-                                SubTeamCreated(subTeamCreatedEventArgs);
-                            }
-                            break;
-                        case "subteam_self_added":
-                            SubTeamSelfAddedEventArgs subTeamSelfAddedEventArgs = new SubTeamSelfAddedEventArgs(Data);
-                            if (SubTeamSelfAdded != null)
-                            {
-                                SubTeamSelfAdded(subTeamSelfAddedEventArgs);
-                            }
-                            break;
-                        case "subteam_self_removed":
-                            SubTeamSelfRemovedEventArgs subTeamSelfRemovedEventArgs = new SubTeamSelfRemovedEventArgs(Data);
-                            if (SubTeamSelfRemoved != null)
-                            {
-                                SubTeamSelfRemoved(subTeamSelfRemovedEventArgs);
-                            }
-                            break;
-                        case "subteam_updated":
-                            SubTeamUpdatedEventArgs subTeamUpdatedEventArgs = new SubTeamUpdatedEventArgs(Data);
-                            if (SubTeamUpdated != null)
-                            {
-                                SubTeamUpdated(subTeamUpdatedEventArgs);
-                            }
-                            break;
-                        case "team_domain_change":
-                            TeamDomainChangeEventArgs teamDomainChangeEventArgs = new TeamDomainChangeEventArgs(Data);
-                            if (TeamDomainChange != null)
-                            {
-                                TeamDomainChange(teamDomainChangeEventArgs);
-                            }
-                            break;
-                        case "team_join":
-                            TeamJoinEventArgs teamJoinEventArgs = new TeamJoinEventArgs(Data);
-                            if (TeamJoin != null)
-                            {
-                                TeamJoin(teamJoinEventArgs);
-                            }
-                            break;
-                        case "team_migration_started":
-                            TeamMigrationStartedEventArgs teamMigrationStartedEventArgs = new TeamMigrationStartedEventArgs(Data);
-                            if (TeamMigrationStarted != null)
-                            {
-                                TeamMigrationStarted(teamMigrationStartedEventArgs);
-                            }
-                            break;
-                        case "team_plan_change":
-                            TeamPlanChangeEventArgs teamPlanChangeEventArgs = new TeamPlanChangeEventArgs(Data);
-                            if (TeamPlanChange != null)
-                            {
-                                TeamPlanChange(teamPlanChangeEventArgs);
-                            }
-                            break;
-                        case "team_pref_change":
-                            TeamPrefChangeEventArgs teamPrefChangeEventArgs = new TeamPrefChangeEventArgs(Data);
-                            if (TeamPrefChange != null)
-                            {
-                                TeamPrefChange(teamPrefChangeEventArgs);
-                            }
-                            break;
-                        case "team_profile_change":
-                            TeamProfileChangeEventArgs teamProfileChangeEventArgs = new TeamProfileChangeEventArgs(Data);
-                            if (TeamProfileChange != null)
-                            {
-                                TeamProfileChange(teamProfileChangeEventArgs);
-                            }
-                            break;
-                        case "team_profile_delete":
-                            TeamProfileDeleteEventArgs teamProfileDeleteEventArgs = new TeamProfileDeleteEventArgs(Data);
-                            if (TeamProfileDelete != null)
-                            {
-                                TeamProfileDelete(teamProfileDeleteEventArgs);
-                            }
-                            break;
-                        case "team_profile_reorder":
-                            TeamProfileReorderEventArgs teamProfileReorderEventArgs = new TeamProfileReorderEventArgs(Data);
-                            if (TeamProfileReorder != null)
-                            {
-                                TeamProfileReorder(teamProfileReorderEventArgs);
-                            }
-                            break;
-                        case "team_rename":
-                            TeamRenameEventArgs teamRenameEventArgs = new TeamRenameEventArgs(Data);
-                            if (TeamRename != null)
-                            {
-                                TeamRename(teamRenameEventArgs);
-                            }
-                            break;
-                        case "user_change":
-                            UserChangeEventArgs userChangeEventArgs = new UserChangeEventArgs(Data);
-                            if (UserChange != null)
-                            {
-                                UserChange(userChangeEventArgs);
-                            }
-                            break;
-                        case "user_typing":
-                            UserTypingEventArgs userTypingEventArgs = new UserTypingEventArgs(this, Data);
-                            if (UserTyping != null)
-                            {
-                                UserTyping(userTypingEventArgs);
-                            }
-                            break;
-                        default: //null
-                            break;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message + "\r\n" + ex.StackTrace);
-                }
-            }
+			try
+			{
+				String strMessage;
+				while (1 == 1)
+				{
+					try
+					{
+						strMessage = await _readMessage();
+						if (DataReceived != null)
+						{
+							DataReceived(strMessage);
+						}
+						dynamic Data = System.Web.Helpers.Json.Decode(strMessage);
+						switch ((String)Data.type)
+						{
+							case "hello":
+								HelloEventArgs helloEventArgs = new HelloEventArgs();
+								if (Hello != null)
+								{
+									Hello(helloEventArgs);
+								}
+								break;
+							case "accounts_changed":
+								AccountsChangedEventArgs accountsChangedEventArgs = new AccountsChangedEventArgs(Data);
+								if (AccountsChanged != null)
+								{
+									AccountsChanged(accountsChangedEventArgs);
+								}
+								break;
+							case "bot_added":
+								BotAddedEventArgs botAddedEventArgs = new BotAddedEventArgs(Data);
+								if (BotAdded != null)
+								{
+									BotAdded(botAddedEventArgs);
+								}
+								break;
+							case "bot_changed":
+								BotChangedEventArgs botChangedEventArgs = new BotChangedEventArgs(Data);
+								if (BotChanged != null)
+								{
+									BotChanged(botChangedEventArgs);
+								}
+								break;
+							case "channel_archive":
+								ChannelArchiveEventArgs channelArchiveEventArgs = new ChannelArchiveEventArgs(Data);
+								if (ChannelArchive != null)
+								{
+									ChannelArchive(channelArchiveEventArgs);
+								}
+								break;
+							case "channel_created":
+								ChannelCreatedEventArgs channelCreatedEventArgs = new ChannelCreatedEventArgs(Data);
+								if (ChannelCreated != null)
+								{
+									ChannelCreated(channelCreatedEventArgs);
+								}
+								break;
+							case "channel_deleted":
+								ChannelDeletedEventArgs channelDeletedEventArgs = new ChannelDeletedEventArgs(Data);
+								if (ChannelDeleted != null)
+								{
+									ChannelDeleted(channelDeletedEventArgs);
+								}
+								break;
+							case "channel_history_changed":
+								ChannelHistoryChangedEventArgs channelHistoryChangedEventArgs = new ChannelHistoryChangedEventArgs(Data);
+								if (ChannelHistoryChanged != null)
+								{
+									ChannelHistoryChanged(channelHistoryChangedEventArgs);
+								}
+								break;
+							case "channel_joined":
+								ChannelJoinedEventArgs channelJoinedEventArgs = new ChannelJoinedEventArgs(Data);
+								if (ChannelJoined != null)
+								{
+									ChannelJoined(channelJoinedEventArgs);
+								}
+								break;
+							case "channel_left":
+								ChannelLeftEventArgs channelLeftEventArgs = new ChannelLeftEventArgs(Data);
+								if (ChannelLeft != null)
+								{
+									ChannelLeft(channelLeftEventArgs);
+								}
+								break;
+							case "channel_marked":
+								ChannelMarkedEventArgs channelMarkedEventArgs = new ChannelMarkedEventArgs(Data);
+								if (ChannelMarked != null)
+								{
+									ChannelMarked(channelMarkedEventArgs);
+								}
+								break;
+							case "channel_rename":
+								ChannelRenameEventArgs channelRenameEventArgs = new ChannelRenameEventArgs(Data);
+								if (ChannelRename != null)
+								{
+									ChannelRename(channelRenameEventArgs);
+								}
+								break;
+							case "channel_unarchive":
+								ChannelUnarchiveEventArgs channelUnarchiveEventArgs = new ChannelUnarchiveEventArgs(Data);
+								if (ChannelUnarchive != null)
+								{
+									ChannelUnarchive(channelUnarchiveEventArgs);
+								}
+								break;
+							case "commands_changed":
+								CommandsChangedEventArgs commandsChangedEventArgs = new CommandsChangedEventArgs(Data);
+								if (CommandsChanged != null)
+								{
+									CommandsChanged(commandsChangedEventArgs);
+								}
+								break;
+							case "dnd_updated":
+								DoNotDisturbUpdatedEventArgs dndUpdatedEventArgs = new DoNotDisturbUpdatedEventArgs(Data);
+								if (DoNotDisturbUpdated != null)
+								{
+									DoNotDisturbUpdated(dndUpdatedEventArgs);
+								}
+								break;
+							case "dnd_updated_user":
+								DoNotDisturbUpdatedUserEventArgs dndUpdatedUserEventArgs = new DoNotDisturbUpdatedUserEventArgs(this, Data);
+								if (DoNotDisturbUpdatedUser != null)
+								{
+									DoNotDisturbUpdatedUser(dndUpdatedUserEventArgs);
+								}
+								break;
+							case "email_domain_changed":
+								EmailDomainChangedEventArgs emailDomainChangedEventArgs = new EmailDomainChangedEventArgs(Data);
+								if (EmailDomainChanged != null)
+								{
+									EmailDomainChanged(emailDomainChangedEventArgs);
+								}
+								break;
+							case "emoji_changed":
+								EmojiChangedEventArgs emojiChangedEventArgs = new EmojiChangedEventArgs(Data);
+								if (EmojiChanged != null)
+								{
+									EmojiChanged(emojiChangedEventArgs);
+								}
+								break;
+							case "file_change":
+								FileChangeEventArgs fileChangeEventArgs = new FileChangeEventArgs(Data);
+								if (FileChanged != null)
+								{
+									FileChanged(fileChangeEventArgs);
+								}
+								break;
+							case "file_comment_added":
+								FileCommentAddedEventArgs fileCommentAddedEventArgs = new FileCommentAddedEventArgs(Data);
+								if (FileCommentAdded != null)
+								{
+									FileCommentAdded(fileCommentAddedEventArgs);
+								}
+								break;
+							case "file_comment_edited":
+								FileCommentEditedEventArgs fileCommentEditedEventArgs = new FileCommentEditedEventArgs(Data);
+								if (FileCommentEdited != null)
+								{
+									FileCommentEdited(fileCommentEditedEventArgs);
+								}
+								break;
+							case "file_comment_deleted":
+								FileCommentDeletedEventArgs fileCommentDeletedEventArgs = new FileCommentDeletedEventArgs(Data);
+								if (FileCommentDeleted != null)
+								{
+									FileCommentDeleted(fileCommentDeletedEventArgs);
+								}
+								break;
+							case "file_created":
+								FileCreatedEventArgs fileCreatedEventArgs = new FileCreatedEventArgs(Data);
+								if (FileCreated != null)
+								{
+									FileCreated(fileCreatedEventArgs);
+								}
+								break;
+							case "file_deleted":
+								FileDeletedEventArgs fileDeletedEventArgs = new FileDeletedEventArgs(Data);
+								if (FileDeleted != null)
+								{
+									FileDeleted(fileDeletedEventArgs);
+								}
+								break;
+							case "file_private":
+								FilePrivateEventArgs filePrivateEventArgs = new FilePrivateEventArgs(Data);
+								if (FilePrivate != null)
+								{
+									FilePrivate(filePrivateEventArgs);
+								}
+								break;
+							case "file_public":
+								FilePublicEventArgs filePublicEventArgs = new FilePublicEventArgs(Data);
+								if (FilePublic != null)
+								{
+									FilePublic(filePublicEventArgs);
+								}
+								break;
+							case "file_shared":
+								FileSharedEventArgs fileSharedEventArgs = new FileSharedEventArgs(Data);
+								if (FileShared != null)
+								{
+									FileShared(fileSharedEventArgs);
+								}
+								break;
+							case "file_unshared":
+								FileUnsharedEventArgs fileUnsharedEventArgs = new FileUnsharedEventArgs(Data);
+								if (FileUnshared != null)
+								{
+									FileUnshared(fileUnsharedEventArgs);
+								}
+								break;
+							case "group_archive":
+								GroupArchiveEventArgs groupArchiveEventArgs = new GroupArchiveEventArgs(Data);
+								if (GroupArchive != null)
+								{
+									GroupArchive(groupArchiveEventArgs);
+								}
+								break;
+							case "group_close":
+								GroupCloseEventArgs groupCloseEventArgs = new GroupCloseEventArgs(Data);
+								if (GroupClose != null)
+								{
+									GroupClose(groupCloseEventArgs);
+								}
+								break;
+							case "group_history_changed":
+								GroupHistoryChangedEventArgs groupHistoryChangedEventArgs = new GroupHistoryChangedEventArgs(Data);
+								if (GroupHistoryChanged != null)
+								{
+									GroupHistoryChanged(groupHistoryChangedEventArgs);
+								}
+								break;
+							case "group_joined":
+								GroupJoinedEventArgs groupJoinedEventArgs = new GroupJoinedEventArgs(Data);
+								if (GroupJoined != null)
+								{
+									GroupJoined(groupJoinedEventArgs);
+								}
+								break;
+							case "group_left":
+								GroupLeftEventArgs groupLeftEventArgs = new GroupLeftEventArgs(Data);
+								if (GroupLeft != null)
+								{
+									GroupLeft(groupLeftEventArgs);
+								}
+								break;
+							case "group_marked":
+								GroupMarkedEventArgs groupMarkedEventArgs = new GroupMarkedEventArgs(Data);
+								if (GroupMarked != null)
+								{
+									GroupMarked(groupMarkedEventArgs);
+								}
+								break;
+							case "group_open":
+								GroupOpenEventArgs groupOpenEventArgs = new GroupOpenEventArgs(Data);
+								if (GroupOpen != null)
+								{
+									GroupOpen(groupOpenEventArgs);
+								}
+								break;
+							case "group_rename":
+								GroupRenameEventArgs groupRenameEventArgs = new GroupRenameEventArgs(Data);
+								if (GroupRename != null)
+								{
+									GroupRename(groupRenameEventArgs);
+								}
+								break;
+							case "group_unarchive":
+								GroupUnarchiveEventArgs groupUnarchiveEventArgs = new GroupUnarchiveEventArgs(Data);
+								if (GroupUnarchive != null)
+								{
+									GroupUnarchive(groupUnarchiveEventArgs);
+								}
+								break;
+							case "im_close":
+								IMCloseEventArgs imCloseEventArgs = new IMCloseEventArgs(Data);
+								if (IMClose != null)
+								{
+									IMClose(imCloseEventArgs);
+								}
+								break;
+							case "im_created":
+								IMCreatedEventArgs imCreatedEventArgs = new IMCreatedEventArgs(Data);
+								if (IMCreated != null)
+								{
+									IMCreated(imCreatedEventArgs);
+								}
+								break;
+							case "im_history_changed":
+								IMHistoryChangedEventArgs imHistoryChangedEventArgs = new IMHistoryChangedEventArgs(Data);
+								if (IMHistoryChanged != null)
+								{
+									IMHistoryChanged(imHistoryChangedEventArgs);
+								}
+								break;
+							case "im_marked":
+								IMMarkedEventArgs imMarkedEventArgs = new IMMarkedEventArgs(Data);
+								if (IMMarked != null)
+								{
+									IMMarked(imMarkedEventArgs);
+								}
+								break;
+							case "im_open":
+								IMOpenEventArgs imOpenEventArgs = new IMOpenEventArgs(Data);
+								if (IMOpened != null)
+								{
+									IMOpened(imOpenEventArgs);
+								}
+								break;
+							case "manual_presence_change":
+								ManualPresenceChangeEventArgs manualPresenceChangeEventArgs = new ManualPresenceChangeEventArgs(Data);
+								if (ManualPresenceChange != null)
+								{
+									ManualPresenceChange(manualPresenceChangeEventArgs);
+								}
+								break;
+							case "message":
+								if (Data.previous_message == null)
+								{
+									MessageEventArgs messagEventArgs = new MessageEventArgs(this, Data);
+									if (Message != null)
+									{
+										Message(messagEventArgs);
+									}
+								}
+								else
+								{
+									MessageEditEventArgs messageEditEventArgs = new MessageEditEventArgs(this, Data);
+									if (MesssageEdit != null)
+									{
+										MesssageEdit(messageEditEventArgs);
+									}
+								}
+								break;
+							case "pin_added":
+								PinAddedEventArgs pinAddedEventArgs = new PinAddedEventArgs(Data);
+								if (PinAdded != null)
+								{
+									PinAdded(pinAddedEventArgs);
+								}
+								break;
+							case "pin_removed":
+								PinRemovedEventArgs pinRemovedEventArgs = new PinRemovedEventArgs(Data);
+								if (PinRemoved != null)
+								{
+									PinRemoved(pinRemovedEventArgs);
+								}
+								break;
+							case "pref_changed":
+								PrefChangedEventArgs prefChangedEventArgs = new PrefChangedEventArgs(Data);
+								if (PrefChanged != null)
+								{
+									PrefChanged(prefChangedEventArgs);
+								}
+								break;
+							case "presence_change":
+								PresenceChangeEventArgs presenceChangeEventArgs = new PresenceChangeEventArgs(this, Data);
+								if (PresenceChanged != null)
+								{
+									PresenceChanged(presenceChangeEventArgs);
+								}
+								break;
+							case "reaction_added":
+								ReactionAddedEventArgs reactionAddedEventArgs = new ReactionAddedEventArgs(Data);
+								if (ReactionAdded != null)
+								{
+									ReactionAdded(reactionAddedEventArgs);
+								}
+								break;
+							case "reaction_removed":
+								ReactionRemovedEventArgs reactionRemovedEventArgs = new ReactionRemovedEventArgs(Data);
+								if (ReactionRemoved != null)
+								{
+									ReactionRemoved(reactionRemovedEventArgs);
+								}
+								break;
+							case "star_added":
+								StarAddedEventArgs starAddedEventArgs = new StarAddedEventArgs(Data);
+								if (StarAdded != null)
+								{
+									StarAdded(starAddedEventArgs);
+								}
+								break;
+							case "star_removed":
+								StarRemovedEventArgs starRemovedEventArgs = new StarRemovedEventArgs(Data);
+								if (StarRemoved != null)
+								{
+									StarRemoved(starRemovedEventArgs);
+								}
+								break;
+							case "subteam_created":
+								SubTeamCreatedEventArgs subTeamCreatedEventArgs = new SubTeamCreatedEventArgs(Data);
+								if (SubTeamCreated != null)
+								{
+									SubTeamCreated(subTeamCreatedEventArgs);
+								}
+								break;
+							case "subteam_self_added":
+								SubTeamSelfAddedEventArgs subTeamSelfAddedEventArgs = new SubTeamSelfAddedEventArgs(Data);
+								if (SubTeamSelfAdded != null)
+								{
+									SubTeamSelfAdded(subTeamSelfAddedEventArgs);
+								}
+								break;
+							case "subteam_self_removed":
+								SubTeamSelfRemovedEventArgs subTeamSelfRemovedEventArgs = new SubTeamSelfRemovedEventArgs(Data);
+								if (SubTeamSelfRemoved != null)
+								{
+									SubTeamSelfRemoved(subTeamSelfRemovedEventArgs);
+								}
+								break;
+							case "subteam_updated":
+								SubTeamUpdatedEventArgs subTeamUpdatedEventArgs = new SubTeamUpdatedEventArgs(Data);
+								if (SubTeamUpdated != null)
+								{
+									SubTeamUpdated(subTeamUpdatedEventArgs);
+								}
+								break;
+							case "team_domain_change":
+								TeamDomainChangeEventArgs teamDomainChangeEventArgs = new TeamDomainChangeEventArgs(Data);
+								if (TeamDomainChange != null)
+								{
+									TeamDomainChange(teamDomainChangeEventArgs);
+								}
+								break;
+							case "team_join":
+								TeamJoinEventArgs teamJoinEventArgs = new TeamJoinEventArgs(Data);
+								if (TeamJoin != null)
+								{
+									TeamJoin(teamJoinEventArgs);
+								}
+								break;
+							case "team_migration_started":
+								TeamMigrationStartedEventArgs teamMigrationStartedEventArgs = new TeamMigrationStartedEventArgs(Data);
+								if (TeamMigrationStarted != null)
+								{
+									TeamMigrationStarted(teamMigrationStartedEventArgs);
+								}
+								break;
+							case "team_plan_change":
+								TeamPlanChangeEventArgs teamPlanChangeEventArgs = new TeamPlanChangeEventArgs(Data);
+								if (TeamPlanChange != null)
+								{
+									TeamPlanChange(teamPlanChangeEventArgs);
+								}
+								break;
+							case "team_pref_change":
+								TeamPrefChangeEventArgs teamPrefChangeEventArgs = new TeamPrefChangeEventArgs(Data);
+								if (TeamPrefChange != null)
+								{
+									TeamPrefChange(teamPrefChangeEventArgs);
+								}
+								break;
+							case "team_profile_change":
+								TeamProfileChangeEventArgs teamProfileChangeEventArgs = new TeamProfileChangeEventArgs(Data);
+								if (TeamProfileChange != null)
+								{
+									TeamProfileChange(teamProfileChangeEventArgs);
+								}
+								break;
+							case "team_profile_delete":
+								TeamProfileDeleteEventArgs teamProfileDeleteEventArgs = new TeamProfileDeleteEventArgs(Data);
+								if (TeamProfileDelete != null)
+								{
+									TeamProfileDelete(teamProfileDeleteEventArgs);
+								}
+								break;
+							case "team_profile_reorder":
+								TeamProfileReorderEventArgs teamProfileReorderEventArgs = new TeamProfileReorderEventArgs(Data);
+								if (TeamProfileReorder != null)
+								{
+									TeamProfileReorder(teamProfileReorderEventArgs);
+								}
+								break;
+							case "team_rename":
+								TeamRenameEventArgs teamRenameEventArgs = new TeamRenameEventArgs(Data);
+								if (TeamRename != null)
+								{
+									TeamRename(teamRenameEventArgs);
+								}
+								break;
+							case "user_change":
+								UserChangeEventArgs userChangeEventArgs = new UserChangeEventArgs(Data);
+								if (UserChange != null)
+								{
+									UserChange(userChangeEventArgs);
+								}
+								break;
+							case "user_typing":
+								UserTypingEventArgs userTypingEventArgs = new UserTypingEventArgs(this, Data);
+								if (UserTyping != null)
+								{
+									UserTyping(userTypingEventArgs);
+								}
+								break;
+							default: //null
+								break;
+						}
+					}
+					catch (Exception ex)
+					{
+						Console.WriteLine(ex.Message + "\r\n" + ex.StackTrace);
+					}
+				}
+			}
+			catch (Exceptions.ServiceDisconnectedException)
+			{
+				//do nothing....normal for disconnected slack service
+			}
+			catch (Exception ex)
+			{
+
+			}
         }
 
 
         private async Task<String> _readMessage()
         {
-            ArraySegment<Byte> buffer = new ArraySegment<byte>(new Byte[8192]);
+			try
+			{
+				ArraySegment<Byte> buffer = new ArraySegment<byte>(new Byte[8192]);
 
-            System.Net.WebSockets.WebSocketReceiveResult result = null;
+				System.Net.WebSockets.WebSocketReceiveResult result = null;
 
-            while (1 == 1)
-            {
-                using (var ms = new System.IO.MemoryStream())
-                {
-                    do
-                    {
-                        result = await webSocket.ReceiveAsync(buffer, System.Threading.CancellationToken.None);
-                        ms.Write(buffer.Array, buffer.Offset, result.Count);
-                    } while (!result.EndOfMessage);
+				while (1 == 1)
+				{
+					using (var ms = new System.IO.MemoryStream())
+					{
+						do
+						{
+							result = await webSocket.ReceiveAsync(buffer, System.Threading.CancellationToken.None);
+							ms.Write(buffer.Array, buffer.Offset, result.Count);
+						} while (!result.EndOfMessage);
 
-                    ms.Seek(0, System.IO.SeekOrigin.Begin);
+						ms.Seek(0, System.IO.SeekOrigin.Begin);
 
-                    if (result.MessageType == System.Net.WebSockets.WebSocketMessageType.Text)
-                    {
-                        using (var reader = new System.IO.StreamReader(ms, Encoding.UTF8))
-                        {
-                            // do stuff
-                        }
-                    }
-                    Byte[] bytMessage = ms.ToArray();
-                    return System.Text.ASCIIEncoding.ASCII.GetString(bytMessage);
-                }
-            }
-
+						if (result.MessageType == System.Net.WebSockets.WebSocketMessageType.Text)
+						{
+							using (var reader = new System.IO.StreamReader(ms, Encoding.UTF8))
+							{
+								// do stuff
+							}
+						}
+						Byte[] bytMessage = ms.ToArray();
+						return System.Text.ASCIIEncoding.ASCII.GetString(bytMessage);
+					}
+				}
+			}
+			catch (System.Net.WebSockets.WebSocketException ex)
+			{
+				webSocket.Dispose();
+				webSocket = null;
+				if (ServiceDisconnected != null)
+				{
+					ServiceDisconnected();
+				}
+				throw new Exceptions.ServiceDisconnectedException(ex);
+			}
+			catch (Exception ex)
+			{
+				//treat as the same as websocket disconnected ?
+				webSocket.Dispose();
+				webSocket = null;
+				if (ServiceDisconnected != null)
+				{
+					ServiceDisconnected();
+				}
+				throw new Exceptions.ServiceDisconnectedException(ex);
+			}
         }
 
 
