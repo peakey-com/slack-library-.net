@@ -956,6 +956,10 @@ namespace Slack
 								break;
 						}
 					}
+					catch (Exceptions.ServiceDisconnectedException ex)
+					{
+						throw ex;
+					}
 					catch (Exception ex)
 					{
 						Console.WriteLine(ex.Message + "\r\n" + ex.StackTrace);
@@ -966,7 +970,7 @@ namespace Slack
 			{
 				//do nothing....normal for disconnected slack service
 			}
-			catch (Exception ex)
+			catch (Exception)
 			{
 
 			}
@@ -1007,8 +1011,11 @@ namespace Slack
 			}
 			catch (System.Net.WebSockets.WebSocketException ex)
 			{
-				webSocket.Dispose();
-				webSocket = null;
+				if (webSocket != null)
+				{
+					webSocket.Dispose();
+					webSocket = null;
+				}
 				if (ServiceDisconnected != null)
 				{
 					ServiceDisconnected();
@@ -1018,8 +1025,11 @@ namespace Slack
 			catch (Exception ex)
 			{
 				//treat as the same as websocket disconnected ?
-				webSocket.Dispose();
-				webSocket = null;
+				if (webSocket != null)
+				{
+					webSocket.Dispose();
+					webSocket = null;
+				}
 				if (ServiceDisconnected != null)
 				{
 					ServiceDisconnected();
