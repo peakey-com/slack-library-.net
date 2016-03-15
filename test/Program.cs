@@ -15,6 +15,8 @@ namespace test
 
 		private static Slack.Client client;
 		private static Int32 connectionFailures = 0;
+		private static Boolean shutdown = false;
+
 
 		//main entry point for application
 		static void Main(string[] args)
@@ -54,6 +56,7 @@ namespace test
 			Console.ReadLine();
 
 			//disconnect from slack service
+			shutdown = true;
 			client.Disconnect();
 		}
 
@@ -70,18 +73,29 @@ namespace test
 
 		private static void client_ServiceDisconnected_ServiceConnectionFailure()
 		{
-			connectionFailures++;
-			if (connectionFailures < 13)
-			{	//wait 5 seconds and try to reconnect
-				System.Threading.Thread.Sleep(5 * 1000);
+			if (shutdown)
+			{	//don't restart
+				return;
 			}
-			else
-			{   //wait 1 minute and try to reconnect
-				System.Threading.Thread.Sleep(60 * 1000);
+			try
+			{
+				connectionFailures++;
+				if (connectionFailures < 13)
+				{   //wait 5 seconds and try to reconnect
+					System.Threading.Thread.Sleep(5 * 1000);
+				}
+				else
+				{   //wait 1 minute and try to reconnect
+					System.Threading.Thread.Sleep(60 * 1000);
+				}
+				Console.WriteLine("Attempting to reconnect to slack service. Attempt " + connectionFailures);
+				client.Connect();
 			}
-			Console.WriteLine("Attempting to reconnect to slack service. Attempt " + connectionFailures);
-			client.Connect();
-		}
+			catch (Exception ex)
+			{
+				Console.WriteLine("Could not handle service disconnected.\r\n" + ex.Message + "\r\n" + ex.StackTrace);
+            }
+        }
 
 
 		private static void client_Hello(Slack.HelloEventArgs e)

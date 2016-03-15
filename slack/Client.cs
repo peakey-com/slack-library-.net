@@ -107,6 +107,7 @@ namespace Slack
         private Slack.DND _dnd;
         private Slack.IM _im;
         private System.Net.WebSockets.ClientWebSocket webSocket;
+		private System.Threading.Thread clientThread = null;
 
 
 #region Public Events
@@ -211,11 +212,22 @@ namespace Slack
 
         private void _refreshRTMMetaData()
         {
-            String strJSON = _downloadConnectionInfo();
-            dynamic Message = null;
-            Message = System.Web.Helpers.Json.Decode(strJSON);
-            rtmMetaData = new RTM.MetaData(Message);
-        }
+			try
+			{
+				String strJSON = _downloadConnectionInfo();
+				dynamic Message = null;
+				Message = System.Web.Helpers.Json.Decode(strJSON);
+				rtmMetaData = new RTM.MetaData(Message);
+			}
+			catch (Exception ex)
+			{
+				if (ServiceDisconnected != null)
+				{
+					ServiceDisconnected();
+				}
+				throw new Exceptions.ServiceDisconnectedException(ex);
+			}
+		}
 
 
         private String _downloadConnectionInfo()
@@ -240,17 +252,46 @@ namespace Slack
 
         public void Connect()
         {
-            _refreshRTMMetaData();
-            _connect();
-        }
+			//run client on it's own thread
+			try
+			{
+				if (clientThread != null)
+				{
+					clientThread.Abort();
+				}
+			}
+			catch (System.Threading.ThreadAbortException)
+			{
+				//this is fine, client could be shut down
+			}
+			catch (Exception ex)
+			{
+				throw ex;
+			}
+			clientThread = new System.Threading.Thread(new System.Threading.ThreadStart(_connect));
+			clientThread.Start();
+		}
 
 
-        private async Task _connect()
+        private void _connect()
         {
 			try
 			{
+				_refreshRTMMetaData();
+			}
+			catch (Exceptions.ServiceDisconnectedException ex)
+			{
+				if (ServiceDisconnected != null)
+				{
+					ServiceDisconnected();
+				}
+				return;
+			}
+			try
+			{
 				webSocket = new System.Net.WebSockets.ClientWebSocket();
-				await webSocket.ConnectAsync(new Uri(rtmMetaData.url), System.Threading.CancellationToken.None);
+				System.Threading.Tasks.Task tsk = webSocket.ConnectAsync(new Uri(rtmMetaData.url), System.Threading.CancellationToken.None);
+				tsk.Wait();
 			}
 			catch (Exception)
 			{
@@ -260,7 +301,7 @@ namespace Slack
 				}
 				return;	//bail....we can do nothing
 			}
-			try
+            try
 			{
 				if (ServiceConnected != null)
 				{
@@ -268,7 +309,11 @@ namespace Slack
 				}
 				_processMessages();
             }
-            catch (Exception ex)
+			catch (System.Threading.ThreadAbortException)
+			{
+				//this is fine, client is being shutdown
+			}
+			catch (Exception ex)
             {
                 Console.WriteLine(ex.Message + "\r\n" + ex.StackTrace);
             }
@@ -281,12 +326,29 @@ namespace Slack
         }
 
 
-        private async Task _disconnect()
+        private void _disconnect()
         {
-            await webSocket.CloseAsync(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, "", System.Threading.CancellationToken.None);
-			if (ServiceDisconnected != null)
+			try
 			{
-				ServiceDisconnected();
+                if (webSocket != null)
+				{
+					System.Threading.Tasks.Task tsk = webSocket.CloseAsync(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, "", System.Threading.CancellationToken.None);
+					tsk.Wait();
+					webSocket.Dispose();
+					webSocket = null;
+				}
+				if (ServiceDisconnected != null)
+				{
+					ServiceDisconnected();
+				}
+			}
+			catch (System.Threading.ThreadAbortException)
+			{
+				//this is fine, client is being shutdown
+			}
+			catch (Exception)
+			{
+				//do nothing
 			}
 		}
 
@@ -455,7 +517,7 @@ namespace Slack
         }
 
 
-        private async void _processMessages()
+        private void _processMessages()
         {
 			try
 			{
@@ -464,7 +526,9 @@ namespace Slack
 				{
 					try
 					{
-						strMessage = await _readMessage();
+						System.Threading.Tasks.Task<String> tsk = _readMessage();
+						tsk.Wait();
+						strMessage = tsk.Result;
 						if (DataReceived != null)
 						{
 							DataReceived(strMessage);
@@ -956,7 +1020,15 @@ namespace Slack
 								break;
 						}
 					}
+					catch (System.AggregateException ex)
+					{
+						throw ex.InnerException;
+					}
 					catch (Exceptions.ServiceDisconnectedException ex)
+					{
+						throw ex;
+					}
+					catch (System.Threading.ThreadAbortException ex)
 					{
 						throw ex;
 					}
@@ -970,6 +1042,10 @@ namespace Slack
 			{
 				//do nothing....normal for disconnected slack service
 			}
+			catch (System.Threading.ThreadAbortException)
+			{
+				//this is fine, client is being shutdown
+			}
 			catch (Exception)
 			{
 
@@ -979,7 +1055,7 @@ namespace Slack
 
         private async Task<String> _readMessage()
         {
-			try
+            try
 			{
 				ArraySegment<Byte> buffer = new ArraySegment<byte>(new Byte[8192]);
 
@@ -1011,30 +1087,13 @@ namespace Slack
 			}
 			catch (System.Net.WebSockets.WebSocketException ex)
 			{
-				if (webSocket != null)
-				{
-					webSocket.Dispose();
-					webSocket = null;
-				}
-				if (ServiceDisconnected != null)
-				{
-					ServiceDisconnected();
-				}
-				throw new Exceptions.ServiceDisconnectedException(ex);
+				_disconnect();
+                throw new Exceptions.ServiceDisconnectedException(ex);
 			}
 			catch (Exception ex)
 			{
-				//treat as the same as websocket disconnected ?
-				if (webSocket != null)
-				{
-					webSocket.Dispose();
-					webSocket = null;
-				}
-				if (ServiceDisconnected != null)
-				{
-					ServiceDisconnected();
-				}
-				throw new Exceptions.ServiceDisconnectedException(ex);
+				_disconnect();
+                throw new Exceptions.ServiceDisconnectedException(ex);
 			}
         }
 
