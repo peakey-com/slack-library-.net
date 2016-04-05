@@ -221,10 +221,6 @@ namespace Slack
 			}
 			catch (Exception ex)
 			{
-				if (ServiceDisconnected != null)
-				{
-					ServiceDisconnected();
-				}
 				throw new Exceptions.ServiceDisconnectedException(ex);
 			}
 		}

@@ -119,28 +119,41 @@ namespace test
 		private static void client_PresenceChanged(Slack.PresenceChangeEventArgs e)
 		{
 			Console.WriteLine(System.DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss") + "\tPresence Changed.\t[" + e.UserInfo.name + "] [" + e.presence + "]");
-			switch (e.presence)
-			{
-				case "active":
-					break;
-				default:
-					return;
-			}
 			String strChannel = client.IM.Open(e.user).ChannelID;
 			if (strChannel.Length == 0)
 			{
 				return;
 			}
+			String strMessage = "";
+			switch (e.presence)
+			{
+				case "active":
+					if (!dctAccounts.ContainsKey(e.UserInfo.name))
+					{
+						strMessage = "Welcome " + e.UserInfo.real_name + "\nWould you like to associate your account with a Time Tracker account?\nFor help type tt /?)";
+					}
+					else
+					{
+						strMessage = TimeTracker_UserActive(e.UserInfo.name, e.UserInfo.real_name);
+					}
+					break;
+				case "away":
+					if (dctAccounts.ContainsKey(e.UserInfo.name))
+					{
+						strMessage = TimeTracker_UserInactive(e.UserInfo.name, e.UserInfo.real_name);
+					}
+					break;
+				default:
+					// do nothing
+					break;
+			}
+			if (strMessage.Length == 0)
+			{
+				return;
+			}
 			Slack.Chat.PostMessageArguments args = new Slack.Chat.PostMessageArguments();
 			args.channel = strChannel;
-			if (!dctAccounts.ContainsKey(e.UserInfo.name))
-			{
-				args.text = "Welcome " + e.UserInfo.real_name + "\nWould you like to associate your account with a Time Tracker account?\nFor help type tt /?)";
-			}
-			else
-			{
-				args.text = "Welcome back " + e.UserInfo.real_name + "\nWould you like to clock in?\nUse the \"tt\" command (for help type tt /?)";
-			}
+			args.text = strMessage;
 			client.Chat.PostMessage(args);
 		}
 
@@ -651,6 +664,117 @@ namespace test
                 throw new Exception("Could get today's time information.", ex);
             }
         }
+
+
+		public static String TimeTracker_UserActive(String strUserName, String strRealName)
+		{
+			try
+			{
+				if (!dctAccounts.ContainsKey(strUserName))
+				{
+					return "Welcome back " + strRealName + "\nWould you like to clock in?\nUse the \"tt\" command (for help type tt /?)";
+				}
+				TimeTrackerAuthentication auth = new TimeTrackerAuthentication();
+				auth = dctAccounts[strUserName];
+
+				String strURL =
+					TIME_TRACKER_API_ENDPOINT + "?" +
+					"email=" + System.Web.HttpUtility.UrlEncode(auth.EmailAddress) +
+					"&token=" + System.Web.HttpUtility.UrlEncode(auth.Token) +
+					"&command=current";
+				System.Net.HttpWebRequest httpWebRequest = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(new Uri(strURL));
+				httpWebRequest.Method = "GET";
+				String strResponse = "";
+				System.Net.HttpWebResponse httpResponse = (System.Net.HttpWebResponse)httpWebRequest.GetResponse();
+				using (System.IO.StreamReader streamReader = new System.IO.StreamReader(httpResponse.GetResponseStream()))
+				{
+					strResponse = streamReader.ReadToEnd();
+				}
+				String strOUT = "";
+				dynamic Response = System.Web.Helpers.Json.Decode(strResponse);
+				if (Slack.Utility.TryGetProperty(Response, "success", false))
+				{
+					if (Slack.Utility.TryGetProperty(Response, "clockedIn", false))
+					{
+						strOUT +=
+							"Welcome back " + strRealName + " you are currently clocked in to " + Slack.Utility.TryGetProperty(Response, "project") + "\r\n" +
+							Slack.Utility.TryGetProperty(Response, "start") + "\t" +
+							Slack.Utility.TryGetProperty(Response, "end") + "\t" +
+							"Hours: " + (Math.Round(((Double)Slack.Utility.TryGetProperty(Response, "hours")), 2).ToString()).PadLeft(5, '0') + "\r\n";
+					}
+					else
+					{
+						strOUT = "Welcome back " + strRealName + "\nWould you like to clock in?\nUse the \"tt\" command (for help type tt /?)";
+					}
+				}
+				else
+				{
+					strOUT = "Could not get current time information.\r\n" + Slack.Utility.TryGetProperty(Response, "reason");
+				}
+
+				return strOUT;
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Could not handle user active event.", ex);
+			}
+		}
+
+
+		public static String TimeTracker_UserInactive(String strUserName, String strRealName)
+		{
+			try
+			{
+				if (!dctAccounts.ContainsKey(strUserName))
+				{
+					return "";
+				}
+				TimeTrackerAuthentication auth = new TimeTrackerAuthentication();
+				auth = dctAccounts[strUserName];
+
+				String strURL =
+					TIME_TRACKER_API_ENDPOINT + "?" +
+					"email=" + System.Web.HttpUtility.UrlEncode(auth.EmailAddress) +
+					"&token=" + System.Web.HttpUtility.UrlEncode(auth.Token) +
+					"&command=current";
+				System.Net.HttpWebRequest httpWebRequest = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(new Uri(strURL));
+				httpWebRequest.Method = "GET";
+				String strResponse = "";
+				System.Net.HttpWebResponse httpResponse = (System.Net.HttpWebResponse)httpWebRequest.GetResponse();
+				using (System.IO.StreamReader streamReader = new System.IO.StreamReader(httpResponse.GetResponseStream()))
+				{
+					strResponse = streamReader.ReadToEnd();
+				}
+				String strOUT = "";
+				dynamic Response = System.Web.Helpers.Json.Decode(strResponse);
+				if (Slack.Utility.TryGetProperty(Response, "success", false))
+				{
+					if (Slack.Utility.TryGetProperty(Response, "clockedIn", false))
+					{
+						strOUT +=
+							"You are currently clocked in to " + Slack.Utility.TryGetProperty(Response, "project") + "\r\n" +
+							Slack.Utility.TryGetProperty(Response, "start") + "\t" +
+							Slack.Utility.TryGetProperty(Response, "end") + "\t" +
+							"Hours: " + (Math.Round(((Double)Slack.Utility.TryGetProperty(Response, "hours")), 2).ToString()).PadLeft(5, '0') + "\r\n" +
+							"Did you forget to clock out?\r\n";
+					}
+					else
+					{
+						strOUT = "";
+					}
+				}
+				else
+				{
+					strOUT = "Could not get current time information.\r\n" + Slack.Utility.TryGetProperty(Response, "reason");
+				}
+
+				return strOUT;
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Could not handle user active event.", ex);
+			}
+		}
 
 
 		#endregion
