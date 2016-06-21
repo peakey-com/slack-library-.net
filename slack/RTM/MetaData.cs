@@ -130,7 +130,7 @@ namespace Slack
                         this.team.icon.image_44 = Utility.TryGetProperty(Message.team.icon, "image_44");
                         this.team.icon.image_68 = Utility.TryGetProperty(Message.team.icon, "image_68");
                         this.team.icon.image_88 = Utility.TryGetProperty(Message.team.icon, "image_88");
-                        this.team.icon.image_default = Utility.TryGetProperty(Message.team.icon, "image_default");
+                        this.team.icon.image_default = Utility.TryGetProperty(Message.team.icon, "image_default", true);
                     }
                 }
                 this.url = Message.url;
