@@ -111,7 +111,7 @@ namespace Slack
         public FileObject(dynamic Data)
         {
             _id = Data.id;
-            _created = Data.created;
+            _created = Utility.TryGetProperty(Data, "created", 0);
             _timestamp = Data.timestamp;
             _name = Data.name;
             _title = Data.title;

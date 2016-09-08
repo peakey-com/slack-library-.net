@@ -118,7 +118,16 @@ namespace test
 
 		private static void client_PresenceChanged(Slack.PresenceChangeEventArgs e)
 		{
-			Console.WriteLine(System.DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss") + "\tPresence Changed.\t[" + e.UserInfo.name + "] [" + e.presence + "]");
+            Console.Write(System.DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss") + "\tPresence Changed.\t[");
+            if (e.UserInfo == null)
+            {
+                Console.Write("Not Found (" + e.user + ")");
+            }
+            else
+            { 
+                Console.Write(e.UserInfo.name);
+            }
+            Console.WriteLine("] [" + e.presence + "]");
 			String strChannel = client.IM.Open(e.user).ChannelID;
 			if (strChannel.Length == 0)
 			{

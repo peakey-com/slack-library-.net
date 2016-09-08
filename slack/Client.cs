@@ -540,7 +540,8 @@ namespace Slack
 								}
 								break;
 							case "accounts_changed":
-								AccountsChangedEventArgs accountsChangedEventArgs = new AccountsChangedEventArgs(Data);
+                                _refreshRTMMetaData();
+                                AccountsChangedEventArgs accountsChangedEventArgs = new AccountsChangedEventArgs(Data);
 								if (AccountsChanged != null)
 								{
 									AccountsChanged(accountsChangedEventArgs);
