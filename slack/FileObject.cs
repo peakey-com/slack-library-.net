@@ -112,7 +112,7 @@ namespace Slack
         {
             _id = Data.id;
             _created = Utility.TryGetProperty(Data, "created", 0);
-            _timestamp = Data.timestamp;
+            _timestamp = Utility.TryGetProperty(Data, "timestamp", 0);
             _name = Data.name;
             _title = Data.title;
             _mimetype = Data.mimetype;
@@ -120,8 +120,11 @@ namespace Slack
             _pretty_type = Data.pretty_type;
             _user = Data.user;
             _mode = Data.mode;
-            _editable = Data.editable;
-            _is_external = Data.is_external;
+            if (!Boolean.TryParse(Data.editable, out _editable))
+            {
+                _editable = false;
+            }
+            _is_external = Utility.TryGetProperty(Data, "is_external", false);
             _external_type = Data.external_type;
             _size = Data.size;
             _url_private = Data.url_private;

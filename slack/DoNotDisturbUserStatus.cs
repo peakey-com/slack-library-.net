@@ -20,8 +20,11 @@ namespace Slack
         public DoNotDisturbUserStatus(dynamic Data)
         {
             _dnd_enabled = Data.dnd_enabled;
-            _next_dnd_end_ts = new Slack.TimeStamp( (String)Data.next_dnd_end_ts);
-            _next_dnd_start_ts = new Slack.TimeStamp( (String)Data.next_dnd_start_ts);
+            if (_dnd_enabled)
+            {
+                _next_dnd_end_ts = new Slack.TimeStamp(((Double)Data.next_dnd_end_ts).ToString());
+                _next_dnd_start_ts = new Slack.TimeStamp(((Double)Data.next_dnd_start_ts).ToString());
+            }
         }
 
 

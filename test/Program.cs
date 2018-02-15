@@ -106,7 +106,14 @@ namespace test
 
 		private static void client_DoNotDisturbUpdatedUser(Slack.DoNotDisturbUpdatedUserEventArgs e)
 		{
-			Console.WriteLine(System.DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss") + "\t\t" + e.UserInfo.name + " " + e.dnd_status.next_dnd_start_ts.Date + " " + e.dnd_status.next_dnd_end_ts.Date);
+            if (e.dnd_status.dnd_enabled)
+            {
+                Console.WriteLine(System.DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss") + "\t\t" + e.UserInfo.name + " " + e.dnd_status.next_dnd_start_ts.Date + " " + e.dnd_status.next_dnd_end_ts.Date);
+            }
+            else
+            {
+                Console.WriteLine(System.DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss") + "\t\t" + e.UserInfo.name + " DND disabled");
+            }
 		}
 
 
@@ -137,14 +144,26 @@ namespace test
 			switch (e.presence)
 			{
 				case "active":
-					if (!dctAccounts.ContainsKey(e.UserInfo.name))
-					{
-						strMessage = "Welcome " + e.UserInfo.real_name + "\nWould you like to associate your account with a Time Tracker account?\nFor help type tt /?)";
-					}
-					else
-					{
-						strMessage = TimeTracker_UserActive(e.UserInfo.name, e.UserInfo.real_name);
-					}
+                    if (!dctAccounts.ContainsKey(e.UserInfo.name))
+                    {
+                        strMessage = "Welcome " + e.UserInfo.real_name + "\nWould you like to associate your account with a Time Tracker account?\nFor help type tt /?)";
+                    }
+                    else
+                    {
+                        TimeTrackerAuthentication auth = dctAccounts[e.UserInfo.name];
+                        if (auth.Silence)
+                        {
+                            return;
+                        }
+                        if (dctAccounts[e.UserInfo.name].Token.Length == 0)
+                        {
+                            strMessage = "Welcome " + e.UserInfo.real_name + "\nWould you like to associate your account with a Time Tracker account?\nFor help type tt /?)";
+                        }
+                        else
+                        {
+                            strMessage = TimeTracker_UserActive(e.UserInfo.name, e.UserInfo.real_name);
+					    }
+                    }
 					break;
 				case "away":
 					if (dctAccounts.ContainsKey(e.UserInfo.name))
@@ -203,11 +222,14 @@ namespace test
 			text = text.Trim().ToLower();
 			switch (text)
 			{
-				case "time":
-					args.text = "Server time is: " + System.DateTime.Now.ToString();
-					client.Chat.PostMessage(args);
-					break;
-				case "local news":
+                case "silence":
+                    Silence(userName, channel);
+                    break;
+                case "time":
+                    args.text = "Server time is: " + System.DateTime.Now.ToString();
+                    client.Chat.PostMessage(args);
+                    break;
+                case "local news":
 					args.text = "";
 					System.Net.WebClient wcLocalNews = new System.Net.WebClient();
 					String strLocalNewsXML = wcLocalNews.DownloadString("http://www.inkfreenews.com/feed/");
@@ -254,28 +276,59 @@ namespace test
 		}
 
 
-		//Below is an example integration between slack and the time tracker service
-		//for more information visit: http://timetracker.services.peakey.com/about/
-		#region TimeTracker Integration
+        private static void Silence(String strUserName, String strChannel)
+        {
+            TimeTrackerAuthentication auth;
+
+            if (dctAccounts.ContainsKey(strUserName))
+            {
+                auth = dctAccounts[strUserName];
+            }
+            else
+            {
+                auth = new TimeTrackerAuthentication();
+                dctAccounts.Add(strUserName, auth);
+            }
+            auth.Silence = !auth.Silence;
+            dctAccounts[strUserName] = auth;
+            TimeTracker_SaveAccounts();
+            Slack.Chat.PostMessageArguments args = new Slack.Chat.PostMessageArguments();
+            args.channel = strChannel;
+            if (auth.Silence)
+            {
+                args.text = "I won't bother you until you unsilence me.";
+            }
+            else
+            {
+                args.text = "I will now prompt you regarding time tracking.";
+            }
+            client.Chat.PostMessage(args);
+        }
 
 
-		private const String TIME_TRACKER_API_ENDPOINT = "http://timetracker.services.peakey.com/api";
+        //Below is an example integration between slack and the time tracker service
+        //for more information visit: http://timetracker.services.peakey.com/about/
+        #region TimeTracker Integration
+
+
+        private const String TIME_TRACKER_API_ENDPOINT = "http://timetracker.services.peakey.com/api";
 
 
 		public class TimeTrackerAuthentication
 		{
 			public String EmailAddress;
 			public String Token;
+            public Boolean Silence;
 		}
 
 
-		private static Dictionary<String, TimeTrackerAuthentication> dctAccounts;
+        private static Dictionary<String, TimeTrackerAuthentication> dctAccounts;
 
 
-		private static void TimeTracker_LoadAccounts()
+        private static void TimeTracker_LoadAccounts()
 		{
-			dctAccounts = new Dictionary<string, TimeTrackerAuthentication>();
-			System.IO.IsolatedStorage.IsolatedStorageFile isoStore;
+            dctAccounts = new Dictionary<string, TimeTrackerAuthentication>();
+            System.IO.IsolatedStorage.IsolatedStorageFile isoStore;
 			isoStore = System.IO.IsolatedStorage.IsolatedStorageFile.GetStore(System.IO.IsolatedStorage.IsolatedStorageScope.User | System.IO.IsolatedStorage.IsolatedStorageScope.Assembly, null, null);
 			System.IO.IsolatedStorage.IsolatedStorageFileStream fsSFS;
 			if (!isoStore.FileExists("settings.txt"))
@@ -296,6 +349,14 @@ namespace test
 				TimeTrackerAuthentication auth = new TimeTrackerAuthentication();
 				auth.EmailAddress = arrAccount[1];
 				auth.Token = arrAccount[2];
+                auth.Silence = false;
+                if (arrAccount.Length >= 4)
+                {
+                    if (!Boolean.TryParse(arrAccount[3], out auth.Silence))
+                        {
+                        auth.Silence = false;
+                    }
+                }
 				dctAccounts.Add(arrAccount[0], auth);
 			}
 			srSFS.Close();
@@ -318,7 +379,7 @@ namespace test
 			{
 				TimeTrackerAuthentication auth;
 				auth = dctAccounts[strAccount];
-				swSFS.WriteLine(strAccount + "|" + auth.EmailAddress + "|" + auth.Token);
+				swSFS.WriteLine(strAccount + "|" + auth.EmailAddress + "|" + auth.Token + "|" + auth.Silence);
 			}
 			swSFS.Flush();
 			swSFS.Close();
@@ -342,11 +403,15 @@ namespace test
 			TimeTrackerAuthentication auth = new TimeTrackerAuthentication();
 			if (!dctAccounts.ContainsKey(strUserName))
 			{
-				if (arrParams[0].Trim() == "associate")
-				{
-					auth = Associate(strUserName, strChannel, arrParams);
-				}
-				else if (arrParams[0].Trim() == "?")
+                if (arrParams[0].Trim() == "associate")
+                {
+                    auth = Associate(strUserName, strChannel, arrParams);
+                }
+                if (arrParams[0].Trim() == "silence")
+                {
+                    auth = Associate(strUserName, strChannel, arrParams);
+                }
+                else if (arrParams[0].Trim() == "?")
 				{
 					Send_Help(strChannel, "Available commands:");
 				}
@@ -438,13 +503,17 @@ namespace test
 		}
 
 
-		private static void Send_Help(String strChannel, String strAdditional)
+        private static void Send_Help(String strChannel, String strAdditional)
 		{
 			Slack.Chat.PostMessageArguments args = new Slack.Chat.PostMessageArguments();
 			args.channel = strChannel;
 			args.text =
 				strAdditional + "\r\n" +
-				"tt /associate /email:[your email] /token:[your token]\tAssociate your slack account with your time tracker account.\r\n" +
+                "Time\tDisplay current server time.\r\n" +
+                "Silence\tToggle's my ability to talk with you.\r\n" +
+                "News\tDisplay latest tech news from reuters.\r\n" +
+                "Local News\tDisplay local news.\r\n" +
+                "tt /associate /email:[your email] /token:[your token]\tAssociate your slack account with your time tracker account.\r\n" +
 				"tt /current\tDisplays your current punch status.\r\n" +
 				"tt /myTime\tDisplays your current cumulative time.\r\n" +
 				"tt /project:[project name]\tDisplays current cumulative time for a project.\r\n" +
@@ -685,8 +754,12 @@ namespace test
 				}
 				TimeTrackerAuthentication auth = new TimeTrackerAuthentication();
 				auth = dctAccounts[strUserName];
+                if (auth.Silence)
+                {
+                    return "";
+                }
 
-				String strURL =
+                String strURL =
 					TIME_TRACKER_API_ENDPOINT + "?" +
 					"email=" + System.Web.HttpUtility.UrlEncode(auth.EmailAddress) +
 					"&token=" + System.Web.HttpUtility.UrlEncode(auth.Token) +
@@ -710,10 +783,6 @@ namespace test
 							Slack.Utility.TryGetProperty(Response, "start") + "\t" +
 							Slack.Utility.TryGetProperty(Response, "end") + "\t" +
 							"Hours: " + (Math.Round(((Double)Slack.Utility.TryGetProperty(Response, "hours")), 2).ToString()).PadLeft(5, '0') + "\r\n";
-					}
-					else
-					{
-						strOUT = "Welcome back " + strRealName + "\nWould you like to clock in?\nUse the \"tt\" command (for help type tt /?)";
 					}
 				}
 				else
@@ -740,8 +809,12 @@ namespace test
 				}
 				TimeTrackerAuthentication auth = new TimeTrackerAuthentication();
 				auth = dctAccounts[strUserName];
+                if (auth.Silence)
+                {
+                    return "";
+                }
 
-				String strURL =
+                String strURL =
 					TIME_TRACKER_API_ENDPOINT + "?" +
 					"email=" + System.Web.HttpUtility.UrlEncode(auth.EmailAddress) +
 					"&token=" + System.Web.HttpUtility.UrlEncode(auth.Token) +

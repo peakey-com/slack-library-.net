@@ -58,6 +58,14 @@ namespace Slack
                         return user;
                     }
                 }
+                _client.RefreshUsers();
+                foreach (RTM.user user in _client.MetaData.users)
+                {
+                    if (user.id == _user)
+                    {
+                        return user;
+                    }
+                }
                 return null;
             }
         }

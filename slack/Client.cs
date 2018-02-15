@@ -210,6 +210,19 @@ namespace Slack
         }
 
 
+        public void RefreshUsers()
+        {
+            try
+            {
+                _refreshRTMMetaData();
+            }
+            catch (Exception)
+            {
+                throw new Exceptions.UnknownErrorException();
+            }
+        }
+
+
         private void _refreshRTMMetaData()
         {
 			try
