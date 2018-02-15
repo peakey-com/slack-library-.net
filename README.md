@@ -33,3 +33,7 @@ The test project is a console app that requires a single startup parameter which
 >client.Disconnect();
 
 
+###\*\*Important Note\*\*
+This library utilizes System.Net.WebSockets and as per Microsoft documentation found [here](https://msdn.microsoft.com/en-us/library/system.net.websockets.clientwebsocket.aspx), requires at least Windows 8.
+
+If you require a version of Windows prior to 8, System.Net.WebSockets could be replaced with an alternative library.
